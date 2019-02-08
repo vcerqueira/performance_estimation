@@ -4,4 +4,4 @@ This repo contains the code and datasets used for the experiments carried out in
 
 #### Contact
 
-For any suggestion or comment on the repo please contact me at vitor.cerqueira@fe.up.pt
+For any suggestion or comment on the repo please contact me at vmac@inesctec.pt
