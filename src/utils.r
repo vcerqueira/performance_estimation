@@ -51,7 +51,6 @@ partition <- function(x, hat.ratio) {
 }
 
 
-
 rbind_l <- function(x) do.call(rbind, x)
 
 
@@ -83,5 +82,23 @@ roll_mean_matrix <-
 as_positive <- 
   function(y) {
     y - min(y) + 1
+  }
+
+
+estimate_k <-
+  function(x, m.max=20,tol=.15) {
+    require(tseriesChaos)
+    
+    fn.out <- false.nearest(x, m.max, d=1, t=1)
+    fn.out <- round(fn.out,4)
+    fn.out[is.na(fn.out)] <- 0
+    #plot(fn.out)
+    
+    fnp.tol <- fn.out["fraction",] > tol
+    fnp.tol.sum <- sum(fnp.tol)
+    
+    m <- ifelse(fnp.tol.sum < m.max,fnp.tol.sum + 1, m.max)
+    
+    m
   }
 

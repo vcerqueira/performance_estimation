@@ -1,4 +1,4 @@
-load("data/synthetic.rdata")
+load("data/timeseries.rdata")
 
 source("src/utils.r")
 source("src/estimation-procedures.r")
@@ -8,16 +8,15 @@ source("src/learning-models.r")
 
 library(tsensembler)
 
-form <- target ~ .
+form <- target~.
 nfolds <- 10
-embedded_time_series <- synthetic$TS1
 
 library(parallel)
-final_results <- 
-  mclapply(1:length(embedded_time_series),
+final_results <-
+  mclapply(1:length(ts_list),
          function(i) {
            cat(i, "\n\n")
-           ds <- embedded_time_series[[i]]
+           ds <- ts_list[[i]]
            
            x <-
              workflow(
@@ -25,11 +24,10 @@ final_results <-
                form = form,
                predictive_algorithm = "rbr",
                nfolds = nfolds,
-               outer_split = .8
-             )
+               outer_split = .8)
            
            x
-         }, mc.cores = 5)
+         }, mc.cores = 20)
 
-save(final_results, file = "final_results_synthetic_ts1_rbr.rdata")
+save(final_results, file = "final_results_main_rbr.rdata")
 

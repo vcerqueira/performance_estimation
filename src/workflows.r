@@ -5,6 +5,18 @@ workflow <-
            nfolds,
            outer_split) {
     
+    
+    khat <- estimate_k(ds[1:(length(ds) * outer_split)], 
+                       m.max = 30, tol = .01)
+    if (khat < 8) khat <- 8
+    
+    x <- embed_timeseries(ds, khat)
+    
+    xp <- partition(x, outer_split)
+    
+    train <- xp$train
+    test <- xp$test
+    
     pred_model <-
       switch(predictive_algorithm,
              "rf" = RF_loss,
@@ -12,11 +24,6 @@ workflow <-
              "lasso" = LASSO_loss,
              "gp" = GP_loss,
              RF_loss)
-    
-    xp <- partition(ds, outer_split)
-    
-    train <- xp$train
-    test <- xp$test
     
     true_loss <-
       pred_model(train = train,
@@ -31,12 +38,23 @@ workflow <-
         nfolds = nfolds
       )
     
+    estimated_loss_on <- 
+      online_methods_pe(train = train,
+                        form = form,
+                        pred_model = pred_model)
+    
+    estimated_loss <- 
+      c(estimated_loss,
+        estimated_loss_on)
+    
     err_estimation <- sapply(estimated_loss,
                              function(u) {
                                ((u - true_loss) / true_loss) * 100
                              })
     
-    list(err_estimation=err_estimation, err=true_loss)
+    list(err_estimation=err_estimation, 
+         est_err = estimated_loss,
+         err=true_loss)
   }
 
 
@@ -143,49 +161,7 @@ performance_estimation <-
     loss_estimations
   }
 
-
-workflow2 <- 
-  function(ds,
-           form,
-           predictive_algorithm = "rf",
-           nfolds,
-           outer_split) {
-    
-    pred_model <-
-      switch(predictive_algorithm,
-             "rf" = RF_loss,
-             "rbr" = RBR_loss,
-             "lasso" = LASSO_loss,
-             "gp" = GP_loss,
-             RF_loss)
-    
-    xp <- partition(ds, outer_split)
-    
-    train <- xp$train
-    test <- xp$test
-    
-    true_loss <-
-      pred_model(train = train,
-                 test = test,
-                 form = form)
-    
-    estimated_loss <- 
-      performance_estimation2(
-        train = train,
-        form = form,
-        pred_model = pred_model
-      )
-    
-    err_estimation <- sapply(estimated_loss,
-                             function(u) {
-                               ((u - true_loss) / true_loss) * 100
-                             })
-    
-    list(err_estimation=err_estimation, err=true_loss)
-  }
-
-
-performance_estimation2 <- 
+online_methods_pe <- 
   function(train, form, pred_model) {
     cat("Estimating loss using ...\n")
     
