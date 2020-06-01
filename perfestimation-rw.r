@@ -1,4 +1,4 @@
-load("data/timeseries.rdata")
+load("data/tsl_uni_90_mix.rdata")
 
 source("src/utils.r")
 source("src/estimation-procedures.r")
@@ -9,7 +9,7 @@ source("src/learning-models.r")
 library(tsensembler)
 
 form <- target~.
-nfolds <- 10
+nfolds <- 30
 
 library(parallel)
 final_results <-
@@ -24,10 +24,10 @@ final_results <-
                form = form,
                predictive_algorithm = "rbr",
                nfolds = nfolds,
-               outer_split = .8)
+               outer_split = .7)
            
            x
-         }, mc.cores = 20)
+         }, mc.cores = 10)
 
-save(final_results, file = "final_results_main_rbr.rdata")
+save(final_results, file = "final_results_rbr.rdata")
 

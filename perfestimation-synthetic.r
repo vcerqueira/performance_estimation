@@ -9,8 +9,8 @@ source("src/learning-models.r")
 library(tsensembler)
 
 form <- target ~ .
-nfolds <- 10
-embedded_time_series <- synthetic$TS1
+nfolds <- 30
+embedded_time_series <- synthetic$TS3
 
 library(parallel)
 final_results <- 
@@ -23,13 +23,15 @@ final_results <-
              workflow(
                ds = ds,
                form = form,
-               predictive_algorithm = "rbr",
+               predictive_algorithm = "rf",
                nfolds = nfolds,
-               outer_split = .8
+               outer_split = .8, 
+               is_embedded = T
              )
            
            x
-         }, mc.cores = 5)
+         }, mc.cores = 3)
 
-save(final_results, file = "final_results_synthetic_ts1_rbr.rdata")
+save(final_results, 
+     file = "final_results_synthetic_ts3_rf.rdata")
 

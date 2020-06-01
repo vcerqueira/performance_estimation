@@ -7,14 +7,6 @@ RF <-
     predict(m,test)$predictions
   }
 
-RF_loss <- 
-  function(train, test, form) {
-    y <- get_y(test, form)
-    y_hat <- RF(form, train, test)
-    
-    rmse(y, y_hat)
-  }
-
 RBR <- 
   function(form,train,test) {
     require(Cubist)
@@ -22,19 +14,11 @@ RBR <-
     X <- model.matrix(form, train)
     Y <- get_y(train, form)
     
-    m <- cubist(X, Y, committees = 25)
+    m <- cubist(X, Y, committees = 10)
     
     Xts <- model.matrix(form, test)
     
     predict(m,Xts)
-  }
-
-RBR_loss <- 
-  function(train, test, form) {
-    y <- get_y(test, form)
-    y_hat <- RBR(form, train, test)
-    
-    rmse(y, y_hat)
   }
 
 
@@ -45,7 +29,7 @@ LASSO <-
     X <- model.matrix(form, train)
     Y <- get_y(train, form)
     
-    m.all <- glmnet(X, Y, alpha = 1, family = "gaussian")
+    m.all <- glmnet(X, Y, alpha = 0, family = "gaussian")
     m <- glmnet(X,
                 Y,
                 alpha = 1,
@@ -57,13 +41,7 @@ LASSO <-
     unname(predict(m,Xts)[,1])
   }
 
-LASSO_loss <- 
-  function(train, test, form) {
-    y <- get_y(test, form)
-    y_hat <- LASSO(form, train, test)
-    
-    rmse(y, y_hat)
-  }
+
 
 GP <- 
   function(form,train,test) {
@@ -78,10 +56,86 @@ GP <-
     predict(m,test)[,1]
   }
 
-GP_loss <- 
-  function(train, test, form) {
+CART <- 
+  function(form,train,test) {
+    require(DMwR)
+    
+    m <- rpartXse(form,train)
+    
+    unname(predict(m,test))
+  }
+
+CART_loss <- 
+  function(train, test, form, avg=TRUE) {
     y <- get_y(test, form)
+    y_tr <- get_y(train, form)
+    y_hat <- tryCatch(CART(form, train, test),
+             error=function(e) {
+               rep(mean(y_tr), times=length(y))
+             })
+    
+    mase_cal(y_tr, y, y_hat, avg)
+  }
+
+
+
+GP_loss <- 
+  function(train, test, form, avg=TRUE) {
+    y <- get_y(test, form)
+    y_tr <- get_y(train, form)
     y_hat <- GP(form, train, test)
     
-    rmse(y, y_hat)
+    mase_cal(y_tr, y, y_hat, avg)
   }
+
+
+
+LASSO_loss <- 
+  function(train, test, form, avg=TRUE) {
+    y <- get_y(test, form)
+    y_tr <- get_y(train, form)
+    y_hat <- 
+      tryCatch(LASSO(form, train, test),
+               error=function(e) {
+                 rep(mean(y_tr), times=length(y))
+               })
+    
+    mase_cal(y_tr, y, y_hat, avg)
+  }
+
+RF_loss <- 
+  function(train, test, form, avg=TRUE) {
+    y <- get_y(test, form)
+    y_tr <- get_y(train, form)
+    y_hat <- RF(form, train, test)
+    
+    #rmse(y, y_hat)
+    mase_cal(y_tr, y, y_hat, avg)
+  }
+
+RBR_loss <- 
+  function(train, test, form, avg=TRUE) {
+    y <- get_y(test, form)
+    y_tr <- get_y(train, form)
+    y_hat <- RBR(form, train, test)
+    
+    mase_cal(y_tr, y, y_hat, avg)
+  }
+
+MLP <-
+  function(form,train,test) {
+    require(nnet)
+    m <- nnet(form, train, size=50, linout=T, MaxNWts=2^20, maxit=150)
+
+    unname(predict(m,test))[,1]
+  }
+
+MLP_loss <-
+  function(train, test, form, avg=TRUE) {
+    y <- get_y(test, form)
+    y_tr <- get_y(train, form)
+    y_hat <- MLP(form, train, test)
+
+    mase_cal(y_tr, y, y_hat, avg)
+  }
+

@@ -91,9 +91,6 @@ modified_xval <- function(x, nfolds, FUN, average_results = TRUE, ...) {
 #'
 #' @export
 hv.block_xval <- function(x, nfolds, FUN, average_results, ...) {
-  #x1<<-x#<-x1
-  #nfolds1 <<- nfolds
-  
   K <- ncol(x)
   f <- cv.folds(x, nfolds)
 
@@ -107,13 +104,19 @@ hv.block_xval <- function(x, nfolds, FUN, average_results, ...) {
     if (i + 1L <= lseq) {
       upper.fold <- which(f == i + 1L)
       upper.cut <- upper.fold[1:K]
+      if (any(is.na(upper.cut))) {
+        upper.cut <- upper.cut[!is.na(upper.cut)]
+      }
+      
       kcuts <- c(kcuts, upper.cut)
     }
     # lower cut
     if (i - 1L >= 1L) {
       lower.fold <- which(f == i - 1L)
       len.lf <- length(lower.fold)
-      lower.cut <- lower.fold[(len.lf - K + 1L):len.lf]
+      idx <- (len.lf - K + 1L):len.lf
+      idx <- idx[idx > 0]
+      lower.cut <- lower.fold[idx]
       kcuts <- c(kcuts, lower.cut)
     }
 
@@ -161,10 +164,11 @@ prequential_in_blocks <- function(x, nfolds, FUN, average_results, ...) {
 
 sliding_prequential_in_blocks <-
   function(x, nfolds, FUN, average_results, ...) {
-    f <- cv.folds(x, nfolds)
+    nfolds0<-10
+    f <- cv.folds(x, nfolds0)
     
     cv.res <- list()
-    seq. <- seq_len(nfolds)
+    seq. <- seq_len(nfolds0)
     for (i in seq.[-length(seq.)]) {
       tr.id <- which(f == i)#which(f %in% seq_len(i))
       ts.id <- which(f == i + 1L)

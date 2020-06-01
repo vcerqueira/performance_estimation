@@ -1,16 +1,187 @@
+# workflow_test_size <- 
+#   function(ds,
+#            form,
+#            predictive_algorithm = "rf",
+#            nfolds,
+#            outer_split) {
+#     
+#     khat <- estimate_k(ds[1:(length(ds) * outer_split)], m.max = 30, tol = .01)
+#     if (khat < 8) khat <- 8
+#     
+#     x <- embed_timeseries(as.numeric(ds), khat+1)
+#     
+#     pred_model <-
+#       switch(predictive_algorithm,
+#              "rf" = RF_loss,
+#              "rbr" = RBR_loss,
+#              "gp" = GP_loss,
+#              "lasso" = LASSO_loss,
+#              RF_loss)
+#     
+#     ## 70/30
+#     xp <- partition(x, outer_split)
+#     
+#     train <- xp$train
+#     test <- xp$test
+#     
+#     e7030_loss <-
+#       pred_model(train = train,
+#                  test = test,
+#                  form = form, avg=FALSE)
+#     
+#     batch_70_30 <- mean(e7030_loss)
+#     
+#     test_0.05_upd <- round(nrow(test) * 0.05,0)
+#     test_0.1_upd <- round(nrow(test) * 0.1,0)
+#     test_0.25_upd <- round(nrow(test) * 0.25,0)
+#     test_onl_upd <- 1
+#     
+#     upd_schemes <- c(test_onl_upd,
+#                      test_0.05_upd,
+#                      test_0.1_upd,
+#                      test_0.25_upd)
+#     
+#     results_upds <- c()
+#     for (updsch in upd_schemes) {
+#       cat(".")
+#       #updsch <- upd_schemes[2]
+#       
+#       s_vec <- split(1:nrow(test), ceiling(seq_along(1:nrow(test)) / updsch))
+#       
+#       err_roll <- c()
+#       train0 <- train
+#       for (i in 1:length(s_vec)) {
+#         
+#         if (i == 1) {
+#           err_i <-
+#             pred_model(train = train,
+#                        test = test[s_vec[[i]],],
+#                        form = form, avg=FALSE)
+#           
+#           err_roll <- c(err_roll, err_i)
+#         } else {
+#           idx <- unlist(s_vec[seq_len(i-1)], use.names = FALSE)
+#           traini <- rbind.data.frame(train, test[idx,])
+#           
+#           err_i <-
+#             pred_model(train = traini,
+#                        test = test[s_vec[[i]],],
+#                        form = form, avg=FALSE)
+#           
+#           err_roll <- c(err_roll, err_i)
+#         }
+#         
+#       }
+#       
+#       results_upds <- c(results_upds, mean(err_roll))
+#     }
+#     
+#     results_upds <- c(results_upds, batch_70_30)
+#     names(results_upds) <- c("online","x5perc","x10perc","x25perc","batch")
+#     
+#     results_upds
+#   }
+
+
+wf_sample_size <- 
+  function(ds,
+           form,
+           predictive_algorithm = "lasso",
+           nfolds,
+           outer_split) {
+    
+    pred_model <-
+      switch(predictive_algorithm,
+             "rf" = RF_loss,
+             "rbr" = RBR_loss,
+             "mlp" = MLP_loss,
+             "lasso" = LASSO_loss,
+             "cart" = CART_loss,
+             "gp" = GP_loss,
+             RF_loss)
+    
+    library(forecast)
+    nd <- ndiffs(ds)
+    if (nd > 0) {
+      ds <- diff(ds, differences=nd)
+    }
+    
+    khat <- estimate_k(ds[1:(length(ds) * outer_split)], m.max = 30, tol = .01)
+    if (khat < 8) khat <- 8
+    
+    x <- embed_timeseries(as.numeric(ds), khat+1)
+    x <- head(x, 1000)
+    
+    iters <- seq(from = 100, to = 1000, by = 100)
+    
+    results <- vector("list", length(iters)-1)
+    for (i in seq_along(iters)[-length(iters)]) {
+      it <- iters[i]
+      
+      train <- x[1:it,]
+      test <- x[(it+1):(iters[i+1]),]
+      
+      #print(nrow(train))
+      #print(nrow(test))
+      #cat("\n\n")
+      true_loss <-
+        pred_model(train = train,
+                   test = test,
+                   form = form)
+      
+      estimated_loss <- 
+        performance_estimation(
+          train = train,
+          form = form,
+          pred_model = pred_model,
+          nfolds = nfolds
+        )
+      
+      estimated_loss_on <-
+        online_methods_pe(train = train,
+                          form = form,
+                          pred_model = pred_model)
+
+      estimated_loss <-
+        c(estimated_loss,
+          estimated_loss_on)
+      
+      err_estimation <- sapply(estimated_loss,
+                               function(u) {
+                                 ((u - true_loss) / true_loss) * 100
+                               })
+      
+      results[[i]] <- err_estimation
+    }
+    
+    results
+  }
+
+
 workflow <- 
   function(ds,
            form,
            predictive_algorithm = "rf",
            nfolds,
-           outer_split) {
+           outer_split, is_embedded=FALSE) {
     
-    
-    khat <- estimate_k(ds[1:(length(ds) * outer_split)], 
-                       m.max = 30, tol = .01)
-    if (khat < 8) khat <- 8
-    
-    x <- embed_timeseries(ds, khat)
+    if(!is_embedded){
+      if (!(predictive_algorithm == "rbr")) {
+        library(forecast)
+        nd <- ndiffs(ds)
+        if (nd > 0) {
+          ds <- diff(ds, differences=nd)
+        }
+      }
+      # 
+      khat <- estimate_k(ds[1:(length(ds) * outer_split)], m.max = 30, tol = .01)
+      if (khat < 8) khat <- 8
+      
+      x <- embed_timeseries(as.numeric(ds), khat+1)
+    } else {
+      x<-ds
+    }
+    #head(x)
     
     xp <- partition(x, outer_split)
     
@@ -21,7 +192,9 @@ workflow <-
       switch(predictive_algorithm,
              "rf" = RF_loss,
              "rbr" = RBR_loss,
+             "mlp" = MLP_loss,
              "lasso" = LASSO_loss,
+             "cart" = CART_loss,
              "gp" = GP_loss,
              RF_loss)
     
@@ -90,14 +263,13 @@ performance_estimation <-
     
     cat("... hv blocked x val ...\n")
     hvb_x_val <- 
-      tryCatch(
-        hv.block_xval(
-          x = train,
-          nfolds = nfolds,
-          FUN = pred_model,
-          average_results = TRUE,
-          form = form
-        ), error = function(e) NA)
+      hv.block_xval(
+        x = train,
+        nfolds = nfolds,
+        FUN = pred_model,
+        average_results = TRUE,
+        form = form
+      )
     
     cat("... preq blocks ...\n")
     preq_b <-
@@ -165,7 +337,7 @@ online_methods_pe <-
   function(train, form, pred_model) {
     cat("Estimating loss using ...\n")
     
-    xp <- partition(train, .7)
+    xp <- partition(train, .8)
     
     train_ <- xp$train
     validation <- xp$test

@@ -1,3 +1,32 @@
+bp_dist <-
+  function(ranks) {
+    if (!is.data.frame(ranks)) {
+      ranks <- as.data.frame(ranks)
+    }
+    
+    avg.rank <- apply(ranks,2,mean,na.rm=TRUE)
+    nms.sort <- names(sort(avg.rank))
+    
+    ranks <- ranks[,nms.sort]
+    ranks <- as.data.frame(ranks)
+    
+    x <- melt(ranks)
+    
+    p <- ggplot(x, aes(variable, value))
+    
+    p <- p  +
+      geom_boxplot() +
+      theme_minimal() +
+      labs(x="",
+           y="Rank") +
+      theme(axis.text.x  = element_text(size=10,
+                                        angle=45)) +
+      theme(axis.text.y  = element_text(size = 10),
+            axis.title.y = element_text(size = 10))
+    
+    p
+  }
+
 proportion_plot <-
   function(ds) {
     require(reshape2)
@@ -87,6 +116,7 @@ avg_rank_plot <-
     require(reshape2)
     require(ggplot2)
     
+    ord0 <- order(avg)
     ord <- names(sort(avg))
     
     methods <- names(avg)
@@ -94,13 +124,21 @@ avg_rank_plot <-
     ds <- data.frame(avg=avg,sdev=sdev, methods=methods, row.names = NULL)
     ds$methods <- factor(ds$methods, levels = ord)
     
+    ##
+    meths <- as.character(ds$methods)
+    ids <- grep("^CV", meths)
+    cols <- rep("#33CCCC",times=length(meths))
+    cols[ids] <- "darkorange3"
+    cols <- cols[ord0]
+    ##
+    
     #ds <- melt(ds)
     
     ggplot(data = ds,
            aes(x = methods,
                y = avg)) +
       geom_bar(stat="identity",
-               fill="#33CCCC") +
+               fill=cols) +
       theme_minimal() +
       theme(axis.text.x  = element_text(angle = 35,
                                         size = 14,

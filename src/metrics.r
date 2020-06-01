@@ -79,3 +79,24 @@ mse <- function(y, y_hat) mean(se(y, y_hat), na.rm = TRUE)
 #'
 #' @export
 mae <- function(y, y_hat) mean(ae(y, y_hat), na.rm = TRUE)
+
+
+
+mase_cal <- function(insample, outsample, forecasts, avg=TRUE){
+  frq <- 1#frequency(insample)
+  forecastsNaiveSD <- rep(NA,frq)
+  for (j in (frq+1):length(insample)){
+    forecastsNaiveSD <- c(forecastsNaiveSD, insample[j-frq])
+  }
+  masep<-mean(abs(insample-forecastsNaiveSD),na.rm = TRUE)
+  
+  outsample <- as.numeric(outsample) ; forecasts <- as.numeric(forecasts)
+  
+  if (avg) {
+    mase <- mean((abs(outsample-forecasts)))/masep
+  } else {
+    mase <- (abs(outsample-forecasts))/masep
+  }
+  
+  return(mase)
+}
