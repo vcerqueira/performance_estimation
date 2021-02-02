@@ -1,5 +1,5 @@
-source("synthetic/simulate-ts.r")
-source("src/utils.r")
+source("simulate-ts.r")
+source("../src/utils.r")
 
 library(forecast)
 library(tsensembler)
