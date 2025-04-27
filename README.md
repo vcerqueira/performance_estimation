@@ -1,14 +1,32 @@
-## Performance Estimation
+# Time Series Forecasting Performance Estimation
 
-This repo contains the code and datasets used for the experiments carried out in the context of the following paper: 
+This repository contains the code and datasets used for experiments conducted in the following paper:
 
-**Cerqueira, Vitor, Luis Torgo, and Igor Mozetič. "Evaluating time series forecasting models: An empirical study on performance estimation methods." Machine Learning 109.11 (2020): 1997-2028.**
+**Cerqueira, V., Torgo, L., & Mozetič, I. (2020). Evaluating time series forecasting models: An empirical study on performance estimation methods. Machine Learning, 109(11), 1997-2028.**
 
+## Citation
 
-### Issues
+If you use this code or the findings in your research, please cite:
 
-The script perfestimation-synthetic.r is only ran for a specific (dataset, algorithm) pair. You need to change those to get the results for a different pair.
+```bibtex
+@article{cerqueira2020evaluating,
+  title={Evaluating time series forecasting models: An empirical study on performance estimation methods},
+  author={Cerqueira, Vitor and Torgo, Luis and Mozeti{\v{c}}, Igor},
+  journal={Machine Learning},
+  volume={109},
+  number={11},
+  pages={1997--2028},
+  year={2020},
+  publisher={Springer}
+}
+```
+
+### Running
+
+The main script is `perfestimation-rw.r`.
+
+The script `perfestimation-synthetic.r` is only ran for a specific (dataset, algorithm) pair. You need to change those to get the results for a different pair.
 
 #### Contact
 
-For any suggestion or comment on the repo please contact me at cerqueira.vitormanuel@gmail.com
+Get in touch at vitorc.research@gmail.com
